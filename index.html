@@ -1,0 +1,228 @@
+
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لعبة دمج الفواكه 6x6 + Firebase + DA</title>
+<style>
+body{font-family:Tahoma,Arial,sans-serif;background:linear-gradient(135deg,#f5f7fa,#c3cfe2);margin:0;padding:15px;text-align:center;}
+#startBtn,#googleLogin{padding:15px 30px;font-size:20px;border:none;border-radius:10px;cursor:pointer;margin:10px}
+#startBtn{background:#4CAF50;color:#fff}
+#googleLogin{background:#4285F4;color:#fff}
+#top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+#targetBox{font-size:24px;font-weight:bold}
+#game{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;max-width:360px;width:90%;margin:15px auto}
+.cell{background:#fff;border-radius:10px;height:50px;display:flex;justify-content:center;align-items:center;font-size:26px;cursor:pointer}
+#activeUsers{max-width:360px;margin:15px auto;text-align:left;font-weight:bold}
+#purchaseBox,#requestBox{margin:15px auto;max-width:360px;background:#fff;padding:15px;border-radius:10px;}
+input{padding:5px;border-radius:5px;border:1px solid #ccc;}
+button{cursor:pointer;}
+</style>
+</head>
+<body>
+
+<div id="userStatus">👤 أنت كزائر</div>
+<button id="googleLogin">تسجيل الدخول بـ Google</button>
+<button id="startBtn">▶️ ابدأ اللعبة</button>
+
+<div id="gameContainer" style="display:none;">
+  <div id="top">
+    <div>⭐ نقاط: <span id="score">0</span></div>
+    <div id="targetBox">🎯 الهدف: <span id="target"></span></div>
+    <div>💎 الجواهر: <span id="gems">0</span></div>
+  </div>
+
+  <div id="game"></div>
+
+  <div id="requestBox">
+    💎 طلب شحن جواهر بعد الدفع اليدوي:
+    <input type="number" id="requestAmount" placeholder="عدد الجواهر">
+    <button id="requestBtn" style="background:#FF9800;color:#fff;border:none;padding:5px 15px;">طلب الشحن</button>
+  </div>
+
+  <div id="activeUsers">
+    🟢 المستخدمون النشطون:
+    <ul id="activeList"></ul>
+  </div>
+</div>
+
+<audio id="sound">
+  <source src="https://cdn.pixabay.com/audio/2022/03/15/audio_5c4f1d6d7a.mp3">
+</audio>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+const allowedHost = "username.github.io"; // ضع رابط مستودع GitHub Pages هنا
+if(location.hostname !== allowedHost){
+    document.body.innerHTML = "<h2>❌ غير مصرح بالدخول لهذه اللعبة</h2>";
+    throw new Error("Access denied: not allowed host");
+}
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBbdPvahZv6OSBumuFBd37mC61UXlsIm6k",
+  authDomain: "naturebelkhirapp.firebaseapp.com",
+  databaseURL: "https://naturebelkhirapp-default-rtdb.firebaseio.com",
+  projectId: "naturebelkhirapp",
+  storageBucket: "naturebelkhirapp.appspot.com",
+  messagingSenderId: "318524052243",
+  appId: "1:318524052243:web:5e14d79b0fa1eeef0280e6"
+};
+firebase.initializeApp(firebaseConfig);
+
+const fruits=["🍎","🍌","🍊","🍓","🍐","🍅"];
+const size=6;
+let grid=[],selected=null;
+let score=0,da=0,targetFruit="";
+let user=null;
+
+const game=document.getElementById("game");
+const targetEl=document.getElementById("target");
+const scoreEl=document.getElementById("score");
+const daEl=document.getElementById("gems");
+const activeList=document.getElementById("activeList");
+
+document.getElementById("googleLogin").onclick=async()=>{
+  const provider=new firebase.auth.GoogleAuthProvider();
+  const res=await firebase.auth().signInWithPopup(provider);
+  user=res.user;
+  document.getElementById("userStatus").textContent="👤 "+user.displayName;
+  document.getElementById("googleLogin").style.display="none";
+  loadGame();
+  updateActiveUsers();
+};
+
+document.getElementById("startBtn").onclick=()=>{
+  document.getElementById("startBtn").style.display="none";
+  document.getElementById("gameContainer").style.display="block";
+  if(grid.length===0) initGrid();
+  nextTarget();
+  renderGrid();
+};
+
+function initGrid(){
+  grid=[];
+  for(let r=0;r<size;r++){
+    let row=[];
+    for(let c=0;c<size;c++) row.push(randomFruit());
+    grid.push(row);
+  }
+}
+
+function randomFruit(){
+  if(targetFruit && Math.random()<0.25) return targetFruit;
+  return fruits[Math.floor(Math.random()*fruits.length)];
+}
+
+function renderGrid(){
+  game.innerHTML="";
+  for(let r=0;r<size;r++){
+    for(let c=0;c<size;c++){
+      const cell=document.createElement("div");
+      cell.className="cell";
+      cell.textContent=grid[r][c];
+      cell.onclick=()=>selectCell(r,c);
+      game.appendChild(cell);
+    }
+  }
+}
+
+function selectCell(r,c){
+  if(!selected){ selected=[r,c]; return; }
+  const [sr,sc]=selected;
+  if(grid[sr][sc]===grid[r][c] && !(sr===r&&sc===c)){
+    grid[sr][sc]=randomFruit();
+    grid[r][c]=randomFruit();
+    checkRows();
+  }
+  selected=null;
+  renderGrid();
+  saveGame();
+}
+
+function checkRows(){
+  for(let r=0;r<size;r++){
+    if(grid[r].every(f=>f===targetFruit)){
+      grid[r]=grid[r].map(()=>randomFruit());
+      score += 100;
+      updateGems();
+      scoreEl.textContent = score;
+      document.getElementById("sound").play();
+      nextTarget();
+      saveGame();
+      break;
+    }
+  }
+}
+
+function nextTarget(){
+  let t;
+  do{ t=fruits[Math.floor(Math.random()*fruits.length)]; }
+  while(t===targetFruit);
+  targetFruit=t;
+  targetEl.textContent=t;
+}
+
+function updateGems(){
+  da = Math.floor(score / 1000) * 100; 
+  daEl.textContent = da;
+}
+
+function saveGame(){
+  if(!user) return;
+  firebase.database().ref("games/"+user.uid).set({
+    name:user.displayName,
+    grid,score,da,targetFruit,
+    lastActive:Date.now()
+  });
+}
+
+function loadGame(){
+  if(!user) return;
+  firebase.database().ref("games/"+user.uid).once("value",snap=>{
+    if(!snap.exists()) return;
+    const d = snap.val();
+    grid=d.grid||[];
+    score=d.score||0;
+    da=d.da||0;
+    targetFruit=d.targetFruit||"";
+    scoreEl.textContent=score;
+    daEl.textContent=da;
+    targetEl.textContent=targetFruit;
+    renderGrid();
+  });
+}
+
+function updateActiveUsers(){
+  firebase.database().ref("games")
+    .orderByChild("lastActive")
+    .startAt(Date.now()-300000)
+    .on("value",snap=>{
+      activeList.innerHTML="";
+      snap.forEach(s=>{
+        const u = s.val();
+        activeList.innerHTML += `<li>${u.name} - نقاط: ${u.score} - 💎: ${u.da || 0}</li>`;
+      });
+    });
+}
+
+document.getElementById("requestBtn").onclick = () => {
+  if(!user) return alert("يجب تسجيل الدخول أولاً!");
+  const amount = parseInt(document.getElementById("requestAmount").value);
+  if(isNaN(amount) || amount <= 0) return alert("ادخل رقم صحيح!");
+  const newRequestRef = firebase.database().ref("gemRequests").push();
+  newRequestRef.set({
+    uid: user.uid,
+    name: user.displayName,
+    amount,
+    status: "pending",
+    timestamp: Date.now()
+  });
+  alert("تم إرسال طلبك وسيتم شحن الجواهر بعد المراجعة اليدوية.");
+};
+</script>
+</body>
+</html>
