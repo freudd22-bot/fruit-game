@@ -9,8 +9,11 @@
 body{
 font-family:Tahoma,Arial;
 background:linear-gradient(135deg,#f5f7fa,#c3cfe2);
-margin:0;padding:15px;text-align:center
+margin:0;
+padding:15px;
+text-align:center
 }
+
 button{
 padding:10px 20px;
 border:none;
@@ -18,12 +21,28 @@ border-radius:8px;
 cursor:pointer;
 margin:6px
 }
+
 #startBtn{background:#4CAF50;color:white}
 #googleLogin{background:#4285F4;color:white}
 #logoutBtn{background:#f44336;color:white}
 #buyBtn{background:#FF9800;color:white}
 #sendWithdraw{background:#9C27B0;color:white}
-.english{display:block;font-size:11px;color:#444}
+
+.english{
+display:block;
+font-size:11px;
+color:#444
+}
+
+#topBar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+max-width:420px;
+margin:10px auto;
+font-weight:bold
+}
+
 #game{
 display:grid;
 grid-template-columns:repeat(6,1fr);
@@ -31,6 +50,7 @@ gap:6px;
 max-width:360px;
 margin:15px auto
 }
+
 .cell{
 background:white;
 border-radius:8px;
@@ -41,7 +61,11 @@ align-items:center;
 font-size:24px;
 cursor:pointer
 }
-.note{font-size:12px;margin-top:8px}
+
+.note{
+font-size:13px;
+margin-top:10px
+}
 </style>
 </head>
 <body>
@@ -72,19 +96,28 @@ cursor:pointer
 
 <div id="gameContainer" style="display:none">
 
+<div id="topBar">
+
 <div>
 ⭐ نقاط: <span id="score">0</span>
 <span class="english">Score</span>
 </div>
 
 <div>
-💎 جواهر: <span id="gems">0</span> DA
-<span class="english">Gems (1 Gem = 1 DA)</span>
+🎯 الهدف: <span id="target"></span>
+<span class="english">Target</span>
 </div>
 
 <div>
-🎯 الهدف: <span id="target"></span>
-<span class="english">Target Fruit</span>
+💎 <span id="gems">0</span> DA
+<span class="english">Gems (1 Gem = 1 DA)</span>
+</div>
+
+</div>
+
+<div class="note">
+املأ الصف أفقيًا حسب الهدف
+<span class="english">Fill the row horizontally according to the target</span>
 </div>
 
 <div id="game"></div>
@@ -125,22 +158,19 @@ cursor:pointer
 
 <script>
 
-/* 🔒 حماية التشغيل خارج الدومين */
-const allowedHost = "freudd22-bot.github.io";
-if(window.location.host !== allowedHost){
+/* حماية الدومين */
+const allowedHost="freudd22-bot.github.io";
+if(window.location.host!==allowedHost){
 alert("غير مصرح بتشغيل اللعبة هنا");
-throw new Error("Blocked host");
+throw new Error("Blocked");
 }
 
 /* Firebase */
-const firebaseConfig = {
+const firebaseConfig={
 apiKey:"YOUR_API_KEY",
 authDomain:"naturebelkhirapp.firebaseapp.com",
 databaseURL:"https://naturebelkhirapp-default-rtdb.firebaseio.com",
-projectId:"naturebelkhirapp",
-storageBucket:"naturebelkhirapp.appspot.com",
-messagingSenderId:"318524052243",
-appId:"1:318524052243:web:xxxx"
+projectId:"naturebelkhirapp"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -153,41 +183,56 @@ let target="";
 const fruits=["🍎","🍌","🍊","🍓","🍐","🍇"];
 const size=6;
 
-/* حفظ حالة اللعبة محليًا حتى لا تختفي */
-function saveLocal(){
-localStorage.setItem("gameState",JSON.stringify({grid,score,gems,target}))
+/* استرجاع الجلسة */
+firebase.auth().onAuthStateChanged((u)=>{
+if(u){
+user=u;
+document.getElementById("userStatus").innerHTML="👤 "+user.displayName;
+document.getElementById("googleLogin").style.display="none";
+document.getElementById("logoutBtn").style.display="inline-block";
+trackActive();
 }
+});
 
-function loadLocal(){
-const data=localStorage.getItem("gameState");
-if(!data) return;
-const d=JSON.parse(data);
-grid=d.grid||[];
-score=d.score||0;
-gems=d.gems||0;
-target=d.target||"";
-document.getElementById("score").textContent=score;
-document.getElementById("gems").textContent=gems;
-document.getElementById("target").textContent=target;
-}
+/* تسجيل دخول */
+document.getElementById("googleLogin").onclick=async()=>{
+const provider=new firebase.auth.GoogleAuthProvider();
+await firebase.auth().signInWithPopup(provider);
+};
 
-/* إنشاء الشبكة */
+/* تسجيل خروج */
+document.getElementById("logoutBtn").onclick=async()=>{
+await firebase.auth().signOut();
+location.reload();
+};
+
+/* بدء */
+document.getElementById("startBtn").onclick=()=>{
+document.getElementById("gameContainer").style.display="block";
+document.getElementById("startBtn").style.display="none";
+init();
+render();
+};
+
 function init(){
 grid=[];
 for(let r=0;r<size;r++){
 let row=[];
 for(let c=0;c<size;c++){
-row.push(fruits[Math.floor(Math.random()*fruits.length)]);
+row.push(randomFruit());
 }
 grid.push(row);
 }
 newTarget();
-render();
 }
 
 function newTarget(){
 target=fruits[Math.floor(Math.random()*fruits.length)];
 document.getElementById("target").textContent=target;
+}
+
+function randomFruit(){
+return fruits[Math.floor(Math.random()*fruits.length)];
 }
 
 function render(){
@@ -202,7 +247,6 @@ cell.onclick=()=>clickCell(r,c);
 game.appendChild(cell);
 }
 }
-saveLocal();
 }
 
 let selected=null;
@@ -219,10 +263,6 @@ selected=null;
 render();
 }
 
-function randomFruit(){
-return fruits[Math.floor(Math.random()*fruits.length)];
-}
-
 function checkRows(){
 for(let r=0;r<size;r++){
 if(grid[r].every(f=>f===target)){
@@ -235,70 +275,17 @@ document.getElementById("score").textContent=score;
 document.getElementById("gems").textContent=gems;
 }
 
-/* بدء اللعبة */
-document.getElementById("startBtn").onclick=()=>{
-document.getElementById("gameContainer").style.display="block";
-document.getElementById("startBtn").style.display="none";
-if(!localStorage.getItem("gameState")) init();
-else {loadLocal();render();}
-};
-
-/* تسجيل الدخول */
-document.getElementById("googleLogin").onclick=async()=>{
-const provider=new firebase.auth.GoogleAuthProvider();
-const res=await firebase.auth().signInWithPopup(provider);
-user=res.user;
-document.getElementById("userStatus").innerHTML="👤 "+user.displayName;
-document.getElementById("googleLogin").style.display="none";
-document.getElementById("logoutBtn").style.display="inline-block";
-trackActive();
-};
-
-/* تسجيل الخروج */
-document.getElementById("logoutBtn").onclick=async()=>{
-await firebase.auth().signOut();
-location.reload();
-};
-
-/* المستخدمون النشطون */
+/* النشطون */
 function trackActive(){
 const ref=firebase.database().ref("active/"+user.uid);
 ref.set(true);
 ref.onDisconnect().remove();
-
 firebase.database().ref("active").on("value",snap=>{
-const count=snap.numChildren();
 document.getElementById("activeUsers").innerHTML=
-"🟢 المستخدمون النشطون: "+count+
+"🟢 المستخدمون النشطون: "+snap.numChildren()+
 "<span class='english'>Active Users</span>";
 });
 }
-
-/* طلب شراء */
-document.getElementById("buyBtn").onclick=()=>{
-if(!user) return alert("سجل الدخول أولا");
-const amount=parseInt(document.getElementById("buyAmount").value)||1;
-firebase.database().ref("purchaseRequests").push({
-name:user.displayName,
-amount:amount,
-time:Date.now()
-});
-alert("تم إرسال الطلب");
-};
-
-/* طلب سحب */
-document.getElementById("sendWithdraw").onclick=()=>{
-if(!user) return alert("سجل الدخول أولا");
-const acc=document.getElementById("withdrawAccount").value.trim();
-if(!acc) return alert("أدخل رقم الحساب");
-firebase.database().ref("withdrawRequests").push({
-name:user.displayName,
-account:acc,
-gems:gems,
-time:Date.now()
-});
-alert("تم إرسال الطلب");
-};
 
 </script>
 </body>
