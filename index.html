@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>لعبة دمج الفواكه 6x6 + Firebase</title>
+<title>لعبة دمج الفواكه 6x6 + Firebase | Fruit Merge Game 6x6</title>
 <style>
 body{font-family:Tahoma,Arial,sans-serif;background:linear-gradient(135deg,#f5f7fa,#c3cfe2);margin:0;padding:15px;text-align:center;}
 #startBtn,#googleLogin,#buyBtn{padding:15px 30px;font-size:20px;border:none;border-radius:10px;cursor:pointer;margin:10px}
@@ -19,27 +19,29 @@ body{font-family:Tahoma,Arial,sans-serif;background:linear-gradient(135deg,#f5f7
 </head>
 <body>
 
-<div id="userStatus">👤 أنت كزائر</div>
-<button id="googleLogin">تجريبية حاليا</button>
-<button id="startBtn">▶️ ابدأ اللعبة</button>
+<div id="userStatus">👤 أنت كزائر | Guest</div>
+<button id="googleLogin">تجريبية حاليا | Test Login</button>
+<button id="startBtn">▶️ ابدأ اللعبة | Start Game</button>
 
 <div id="gameContainer" style="display:none;">
   <div id="top">
-    <div id="scoreBox">⭐ نقاط: <span id="score">0</span></div>
-    <div id="targetBox">🎯 الهدف: <span id="target"></span></div>
-    <div id="daBox">💎 جواهر: <span id="da">0</span></div>
+    <div id="scoreBox">⭐ نقاط | Score: <span id="score">0</span></div>
+    <div id="targetBox">🎯 الهدف | Target: <span id="target"></span></div>
+    <div id="daBox">💎 جواهر | Gems: <span id="da">0</span> | DA: <span id="daDA">0</span></div>
   </div>
 
   <div id="game"></div>
 
-  <div id="activeUsers">🟢 المستخدمون النشطون: 0</div>
+  <div id="activeUsers">🟢 المستخدمون النشطون | Active Users: 0</div>
 
   <div id="purchase">
-    <input type="number" id="buyAmount" placeholder="كمية الجواهر" style="width:120px;padding:8px;font-size:16px">
-    <button id="buyBtn">شراء جوهرة ب 1 DA</button>
-    <div style="font-size:12px;margin-top:5px;">السحب يبدأ من 1000 DA</div>
-    <div style="font-size:12px;margin-top:5px;">رقم الحساب للدفع: 00799999000887214877</div>
+    <input type="number" id="buyAmount" placeholder="كمية الجواهر | Amount" style="width:120px;padding:8px;font-size:16px">
+    <button id="buyBtn">شراء جوهرة ب 1 DA | Buy Gem 1 DA</button>
+    <div style="font-size:12px;margin-top:5px;">السحب يبدأ من 1000 DA | Withdraw starts from 1000 DA</div>
+    <div style="font-size:12px;margin-top:5px;">رقم الحساب للدفع | Account Number: 00799999000887214877</div>
   </div>
+
+  <div style="font-size:12px;margin-top:10px;">استغل كل دمج بالذكر والاستغفار في قلبك | Remember Allah & seek forgiveness in every merge</div>
 </div>
 
 <audio id="sound">
@@ -55,7 +57,7 @@ body{font-family:Tahoma,Arial,sans-serif;background:linear-gradient(135deg,#f5f7
 /* ===== حماية الموقع ===== */
 const allowedHost = "freudd22-bot.github.io";
 if(window.location.host !== allowedHost){
-  alert("هذه اللعبة غير مصرح بتشغيلها هنا!");
+  alert("هذه اللعبة غير مصرح بتشغيلها هنا! | This game is not allowed to run here!");
   throw new Error("Host not allowed");
 }
 
@@ -81,6 +83,7 @@ const game=document.getElementById("game");
 const targetEl=document.getElementById("target");
 const scoreEl=document.getElementById("score");
 const daEl=document.getElementById("da");
+const daDAEl=document.getElementById("daDA");
 const activeUsersEl=document.getElementById("activeUsers");
 
 /* ===== Google Login ===== */
@@ -88,9 +91,10 @@ document.getElementById("googleLogin").onclick=async()=>{
   const provider=new firebase.auth.GoogleAuthProvider();
   const res=await firebase.auth().signInWithPopup(provider);
   user=res.user;
-  document.getElementById("userStatus").textContent="👤 "+user.displayName;
+  document.getElementById("userStatus").textContent="👤 "+user.displayName+" | "+user.email;
   document.getElementById("googleLogin").style.display="none";
   loadGame();
+  saveActiveUser();
   updateActiveUsers();
 };
 
@@ -152,17 +156,14 @@ function checkRows(){
       scoreEl.textContent=score;
       document.getElementById("sound").play();
       nextTarget();
+      // الملاحظة: استغفار وذكر
+      console.log("استغل كل دمج بالذكر والاستغفار | Remember Allah & seek forgiveness");
       break;
     }
   }
-}
-
-function nextTarget(){
-  let t;
-  do{ t=fruits[Math.floor(Math.random()*fruits.length)]; }
-  while(t===targetFruit);
-  targetFruit=t;
-  targetEl.textContent=t;
+  da = Math.floor(score/1000); // كل 1000 نقطة = 1 جوهرة
+  daEl.textContent = da;
+  daDAEl.textContent = da;
 }
 
 /* ===== Firebase Save / Load ===== */
@@ -186,32 +187,44 @@ function loadGame(){
     targetFruit=d.targetFruit||"";
     scoreEl.textContent=score;
     daEl.textContent=da;
+    daDAEl.textContent=da;
+    targetEl.textContent=targetFruit;
     renderGrid();
   });
 }
 
 /* ===== Active Users Count ===== */
+function saveActiveUser(){
+  if(!user) return;
+  const ref = firebase.database().ref("games/"+user.uid);
+  ref.update({
+    name: user.displayName,
+    lastActive: Date.now()
+  });
+  ref.onDisconnect().update({ lastActive: 0 });
+}
+setInterval(saveActiveUser, 30000); // تحديث النشاط كل 30 ثانية
+
 function updateActiveUsers(){
   firebase.database().ref("games")
     .orderByChild("lastActive")
     .startAt(Date.now()-300000) // آخر 5 دقائق
     .on("value", snap=>{
-      const activeCount = snap.size; // عدد المستخدمين النشطين
-      activeUsersEl.textContent = `🟢 المستخدمون النشطون: ${activeCount}`;
+      const activeCount = snap.size;
+      activeUsersEl.textContent = `🟢 المستخدمون النشطون | Active Users: ${activeCount}`;
     });
 }
 
 /* ===== Purchase Gems (Manual Approval) ===== */
 document.getElementById("buyBtn").onclick=()=>{
   let amount=parseInt(document.getElementById("buyAmount").value)||1;
-  if(!user) return alert("سجل الدخول أولاً");
-  // سجل الطلب في Firebase فقط
+  if(!user) return alert("سجل الدخول أولاً | Please login first");
   firebase.database().ref("purchaseRequests").push({
     user:user.displayName,
     amount,
     timestamp:Date.now()
   });
-  alert("تم طلب الشحن، انتظر التحقق");
+  alert("تم طلب الشحن، انتظر التحقق | Purchase requested, await approval");
 };
 </script>
 </body>
