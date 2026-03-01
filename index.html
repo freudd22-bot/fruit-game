@@ -6,16 +6,19 @@
 <title>لعبة دمج الفواكه 6x6 + Firebase</title>
 <style>
 body{font-family:Tahoma,Arial,sans-serif;background:linear-gradient(135deg,#f5f7fa,#c3cfe2);margin:0;padding:15px;text-align:center;}
-#startBtn,#googleLogin,#buyBtn{padding:12px 25px;font-size:18px;border:none;border-radius:10px;cursor:pointer;margin:10px}
+#startBtn,#googleLogin,#buyBtn,#logoutBtn,#sendWithdraw{padding:12px 25px;font-size:18px;border:none;border-radius:10px;cursor:pointer;margin:10px}
 #startBtn{background:#4CAF50;color:#fff}
 #googleLogin{background:#4285F4;color:#fff}
 #buyBtn{background:#FF9800;color:#fff}
+#logoutBtn{background:#f44336;color:#fff}
+#sendWithdraw{background:#9C27B0;color:#fff}
 #top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;font-size:14px}
 #targetBox{font-weight:bold;font-size:18px;margin-bottom:5px}
 #game{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;max-width:360px;width:95%;margin:15px auto}
 .cell{background:#fff;border-radius:10px;height:50px;display:flex;justify-content:center;align-items:center;font-size:26px;cursor:pointer}
 #activeUsers{font-weight:bold;margin:15px auto;font-size:14px}
-#purchase input{width:120px;padding:8px;font-size:16px;margin-bottom:5px}
+#purchase,#withdraw{margin:15px auto;max-width:360px;text-align:center}
+#purchase input,#withdraw input{width:200px;padding:8px;font-size:16px;margin-bottom:5px}
 .note{font-size:12px;margin-top:5px;color:#333}
 .english{font-size:11px;color:#555;display:block;margin-top:2px}
 </style>
@@ -29,6 +32,10 @@ body{font-family:Tahoma,Arial,sans-serif;background:linear-gradient(135deg,#f5f7
 <button id="googleLogin">
   تجريبية حاليا
   <span class="english">Test Login</span>
+</button>
+<button id="logoutBtn" style="display:none">
+  تسجيل الخروج
+  <span class="english">Logout</span>
 </button>
 <button id="startBtn">
   ▶️ ابدأ اللعبة
@@ -76,6 +83,16 @@ body{font-family:Tahoma,Arial,sans-serif;background:linear-gradient(135deg,#f5f7
     </div>
   </div>
 
+  <div id="withdraw">
+    <input type="text" id="withdrawAccount" placeholder="أدخل رقم حسابك للسحب">
+    <span class="english">Enter your account number to withdraw</span>
+    <button id="sendWithdraw">طلب السحب</button>
+    <div class="note">
+      سيتم ارسال طلبك لي، انتظر التحقق اليدوي
+      <span class="english">Your request will be sent to me, await manual approval</span>
+    </div>
+  </div>
+
   <div class="note">
     استغل كل دمج بالذكر والاستغفار في قلبك
     <span class="english">Remember Allah & seek forgiveness in every merge</span>
@@ -91,12 +108,14 @@ body{font-family:Tahoma,Arial,sans-serif;background:linear-gradient(135deg,#f5f7
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
+// حماية الموقع
 const allowedHost = "freudd22-bot.github.io";
 if(window.location.host !== allowedHost){
   alert("هذه اللعبة غير مصرح بتشغيلها هنا!");
   throw new Error("Host not allowed");
 }
 
+// Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyBbdPvahZv6OSBumuFBd37mC61UXlsIm6k",
   authDomain: "naturebelkhirapp.firebaseapp.com",
@@ -121,17 +140,30 @@ const daEl=document.getElementById("da");
 const daDAEl=document.getElementById("daDA");
 const activeUsersEl=document.getElementById("activeUsers");
 
+// Google Login
 document.getElementById("googleLogin").onclick=async()=>{
   const provider=new firebase.auth.GoogleAuthProvider();
   const res=await firebase.auth().signInWithPopup(provider);
   user=res.user;
   document.getElementById("userStatus").innerHTML="👤 "+user.displayName+"<span class='english'>"+user.email+"</span>";
   document.getElementById("googleLogin").style.display="none";
+  document.getElementById("logoutBtn").style.display="inline-block";
   loadGame();
   saveActiveUser();
   updateActiveUsers();
 };
 
+// Logout
+document.getElementById("logoutBtn").onclick = async () => {
+  if(user){
+    await firebase.auth().signOut();
+    user = null;
+    alert("تم تسجيل الخروج | Logged out");
+    location.reload();
+  }
+};
+
+// Start Game
 document.getElementById("startBtn").onclick=()=>{
   document.getElementById("startBtn").style.display="none";
   document.getElementById("gameContainer").style.display="block";
@@ -140,6 +172,7 @@ document.getElementById("startBtn").onclick=()=>{
   renderGrid();
 };
 
+// Game Logic
 function initGrid(){
   grid=[];
   for(let r=0;r<size;r++){
@@ -197,14 +230,7 @@ function checkRows(){
   daDAEl.textContent = da;
 }
 
-function nextTarget(){
-  let t;
-  do{ t=fruits[Math.floor(Math.random()*fruits.length)]; }
-  while(t===targetFruit);
-  targetFruit=t;
-  targetEl.textContent=t;
-}
-
+// Firebase Save/Load
 function saveGame(){
   if(!user) return;
   firebase.database().ref("games/"+user.uid).set({
@@ -231,6 +257,7 @@ function loadGame(){
   });
 }
 
+// Active Users
 function saveActiveUser(){
   if(!user) return;
   const ref = firebase.database().ref("games/"+user.uid);
@@ -249,6 +276,7 @@ function updateActiveUsers(){
     });
 }
 
+// Purchase Requests
 document.getElementById("buyBtn").onclick=()=>{
   let amount=parseInt(document.getElementById("buyAmount").value)||1;
   if(!user) return alert("سجل الدخول أولاً | Please login first");
@@ -259,6 +287,32 @@ document.getElementById("buyBtn").onclick=()=>{
   });
   alert("تم طلب الشحن، انتظر التحقق | Purchase requested, await approval");
 };
+
+// Withdraw Requests
+document.getElementById("sendWithdraw").onclick = () => {
+  if(!user) return alert("سجل الدخول أولاً | Please login first");
+  const account = document.getElementById("withdrawAccount").value.trim();
+  if(!account) return alert("أدخل رقم الحساب | Enter your account number");
+
+  firebase.database().ref("withdrawRequests").push({
+    user:user.displayName,
+    account,
+    da: da,
+    timestamp:Date.now()
+  });
+
+  alert("تم طلب السحب، انتظر التحقق | Withdrawal requested, await manual approval");
+  document.getElementById("withdrawAccount").value = "";
+};
+
+// Next Target
+function nextTarget(){
+  let t;
+  do{ t=fruits[Math.floor(Math.random()*fruits.length)]; }
+  while(t===targetFruit);
+  targetFruit=t;
+  targetEl.textContent=t;
+}
 </script>
 </body>
 </html>
