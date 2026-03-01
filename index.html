@@ -86,20 +86,17 @@ body{font-family:Tahoma,Arial,sans-serif;background:linear-gradient(135deg,#f5f7
   <source src="https://cdn.pixabay.com/audio/2022/03/15/audio_5c4f1d6d7a.mp3">
 </audio>
 
-<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-/* ===== حماية الموقع ===== */
 const allowedHost = "freudd22-bot.github.io";
 if(window.location.host !== allowedHost){
   alert("هذه اللعبة غير مصرح بتشغيلها هنا!");
   throw new Error("Host not allowed");
 }
 
-/* ===== Firebase Config ===== */
 const firebaseConfig = {
   apiKey: "AIzaSyBbdPvahZv6OSBumuFBd37mC61UXlsIm6k",
   authDomain: "naturebelkhirapp.firebaseapp.com",
@@ -124,7 +121,6 @@ const daEl=document.getElementById("da");
 const daDAEl=document.getElementById("daDA");
 const activeUsersEl=document.getElementById("activeUsers");
 
-/* ===== Google Login ===== */
 document.getElementById("googleLogin").onclick=async()=>{
   const provider=new firebase.auth.GoogleAuthProvider();
   const res=await firebase.auth().signInWithPopup(provider);
@@ -136,7 +132,6 @@ document.getElementById("googleLogin").onclick=async()=>{
   updateActiveUsers();
 };
 
-/* ===== Start Game ===== */
 document.getElementById("startBtn").onclick=()=>{
   document.getElementById("startBtn").style.display="none";
   document.getElementById("gameContainer").style.display="block";
@@ -145,7 +140,6 @@ document.getElementById("startBtn").onclick=()=>{
   renderGrid();
 };
 
-/* ===== Game Logic ===== */
 function initGrid(){
   grid=[];
   for(let r=0;r<size;r++){
@@ -203,7 +197,14 @@ function checkRows(){
   daDAEl.textContent = da;
 }
 
-/* ===== Firebase Save / Load ===== */
+function nextTarget(){
+  let t;
+  do{ t=fruits[Math.floor(Math.random()*fruits.length)]; }
+  while(t===targetFruit);
+  targetFruit=t;
+  targetEl.textContent=t;
+}
+
 function saveGame(){
   if(!user) return;
   firebase.database().ref("games/"+user.uid).set({
@@ -230,7 +231,6 @@ function loadGame(){
   });
 }
 
-/* ===== Active Users Count ===== */
 function saveActiveUser(){
   if(!user) return;
   const ref = firebase.database().ref("games/"+user.uid);
@@ -249,7 +249,6 @@ function updateActiveUsers(){
     });
 }
 
-/* ===== Purchase Gems (Manual Approval) ===== */
 document.getElementById("buyBtn").onclick=()=>{
   let amount=parseInt(document.getElementById("buyAmount").value)||1;
   if(!user) return alert("سجل الدخول أولاً | Please login first");
