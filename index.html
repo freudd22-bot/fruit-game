@@ -87,10 +87,6 @@ body{font-family:Tahoma,Arial,sans-serif;background:linear-gradient(135deg,#f5f7
     <input type="text" id="withdrawAccount" placeholder="أدخل رقم حسابك للسحب">
     <span class="english">Enter your account number to withdraw</span>
     <button id="sendWithdraw">طلب السحب</button>
-    <div class="note">
-      سيتم ارسال طلبك لي، انتظر التحقق اليدوي
-      <span class="english">Your request will be sent to me, await manual approval</span>
-    </div>
   </div>
 
   <div class="note">
@@ -301,7 +297,7 @@ document.getElementById("sendWithdraw").onclick = () => {
     timestamp:Date.now()
   });
 
-  alert("تم طلب السحب، انتظر التحقق | Withdrawal requested, await manual approval");
+  alert("تم طلب السحب | Withdrawal requested");
   document.getElementById("withdrawAccount").value = "";
 };
 
