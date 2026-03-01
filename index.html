@@ -3,60 +3,42 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>لعبة دمج الفواكه 6x6 + DA</title>
-
+<title>لعبة دمج الفواكه 6x6 + Firebase</title>
 <style>
 body{font-family:Tahoma,Arial,sans-serif;background:linear-gradient(135deg,#f5f7fa,#c3cfe2);margin:0;padding:15px;text-align:center;}
-#startBtn,#googleLogin,#buyBtn,#withdrawBtn{padding:15px 30px;font-size:18px;border:none;border-radius:10px;cursor:pointer;margin:10px}
+#startBtn,#googleLogin,#buyBtn{padding:15px 30px;font-size:20px;border:none;border-radius:10px;cursor:pointer;margin:10px}
 #startBtn{background:#4CAF50;color:#fff}
 #googleLogin{background:#4285F4;color:#fff}
 #buyBtn{background:#FF9800;color:#fff}
-#withdrawBtn{background:#9C27B0;color:#fff}
 #top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap}
-#targetBox{font-size:20px;font-weight:bold}
+#targetBox{font-size:24px;font-weight:bold}
 #game{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;max-width:360px;width:90%;margin:15px auto}
 .cell{background:#fff;border-radius:10px;height:50px;display:flex;justify-content:center;align-items:center;font-size:26px;cursor:pointer}
-#activeUsers{max-width:360px;margin:15px auto;text-align:left;font-weight:bold}
-#shopBox,#withdrawBox,#gameGuide{max-width:360px;margin:10px auto;text-align:center;font-weight:bold;background:#fff;border-radius:10px;padding:10px;}
-input[type=number]{width:60px;padding:5px;margin:5px;}
+#activeUsers{font-weight:bold;margin:15px auto;}
 </style>
 </head>
-
 <body>
 
 <div id="userStatus">👤 أنت كزائر</div>
-<button id="googleLogin">تسجيل الدخول بـ Google</button>
+<button id="googleLogin">تجريبية حاليا</button>
 <button id="startBtn">▶️ ابدأ اللعبة</button>
-
-<div id="gameGuide" style="display:none;">
-🎯 املأ الصفوف أفقيًا حسب الهدف<br>
-استغل مع كل دمج ذكر الله والاستغفار في قلبك
-</div>
 
 <div id="gameContainer" style="display:none;">
   <div id="top">
-    <div>🎯 الهدف: <span id="target"></span></div>
-    <div>⭐ نقاط: <span id="score">0</span></div>
-    <div>💎 جواهر: <span id="gems">0</span> DA</div>
+    <div id="scoreBox">⭐ نقاط: <span id="score">0</span></div>
+    <div id="targetBox">🎯 الهدف: <span id="target"></span></div>
+    <div id="daBox">💎 جواهر: <span id="da">0</span></div>
   </div>
 
   <div id="game"></div>
 
-  <div id="shopBox">
-    🛒 شراء جوهرة: <input type="number" id="buyAmount" value="1" min="1"> 
-    <button id="buyBtn">شراء</button><br>
-    كل جوهرة = 1DA<br>
-    رقم الحساب للدفع: <b>00799999000887214877</b>
-  </div>
+  <div id="activeUsers">🟢 المستخدمون النشطون: 0</div>
 
-  <div id="withdrawBox">
-    💰 السحب متاح عند 1000DA<br>
-    <button id="withdrawBtn">سحب DA</button>
-  </div>
-
-  <div id="activeUsers">
-    🟢 المستخدمون النشطون:
-    <ul id="activeList"></ul>
+  <div id="purchase">
+    <input type="number" id="buyAmount" placeholder="كمية الجواهر" style="width:120px;padding:8px;font-size:16px">
+    <button id="buyBtn">شراء جوهرة ب 1 DA</button>
+    <div style="font-size:12px;margin-top:5px;">السحب يبدأ من 1000 DA</div>
+    <div style="font-size:12px;margin-top:5px;">رقم الحساب للدفع: 00799999000887214877</div>
   </div>
 </div>
 
@@ -64,6 +46,7 @@ input[type=number]{width:60px;padding:5px;margin:5px;}
   <source src="https://cdn.pixabay.com/audio/2022/03/15/audio_5c4f1d6d7a.mp3">
 </audio>
 
+<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -72,11 +55,11 @@ input[type=number]{width:60px;padding:5px;margin:5px;}
 /* ===== حماية الموقع ===== */
 const allowedHost = "freudd22-bot.github.io";
 if(window.location.host !== allowedHost){
-    alert("هذه اللعبة غير مصرح بتشغيلها هنا!");
-    throw new Error("Host not allowed");
+  alert("هذه اللعبة غير مصرح بتشغيلها هنا!");
+  throw new Error("Host not allowed");
 }
 
-/* Firebase Config */
+/* ===== Firebase Config ===== */
 const firebaseConfig = {
   apiKey: "AIzaSyBbdPvahZv6OSBumuFBd37mC61UXlsIm6k",
   authDomain: "naturebelkhirapp.firebaseapp.com",
@@ -90,16 +73,15 @@ firebase.initializeApp(firebaseConfig);
 
 const fruits=["🍎","🍌","🍊","🍓","🍐","🍅"];
 const size=6;
-
 let grid=[],selected=null;
-let score=0,gems=0,targetFruit="";
+let score=0,da=0,targetFruit="";
 let user=null;
 
 const game=document.getElementById("game");
 const targetEl=document.getElementById("target");
 const scoreEl=document.getElementById("score");
-const gemsEl=document.getElementById("gems");
-const activeList=document.getElementById("activeList");
+const daEl=document.getElementById("da");
+const activeUsersEl=document.getElementById("activeUsers");
 
 /* ===== Google Login ===== */
 document.getElementById("googleLogin").onclick=async()=>{
@@ -116,7 +98,6 @@ document.getElementById("googleLogin").onclick=async()=>{
 document.getElementById("startBtn").onclick=()=>{
   document.getElementById("startBtn").style.display="none";
   document.getElementById("gameContainer").style.display="block";
-  document.getElementById("gameGuide").style.display="block";
   if(grid.length===0) initGrid();
   nextTarget();
   renderGrid();
@@ -167,18 +148,11 @@ function checkRows(){
   for(let r=0;r<size;r++){
     if(grid[r].every(f=>f===targetFruit)){
       grid[r]=grid[r].map(()=>randomFruit());
-      score += 100;
-      gems = Math.floor(score/1000);
+      score+=100; // نقاط
       scoreEl.textContent=score;
-      gemsEl.textContent=gems;
       document.getElementById("sound").play();
       nextTarget();
-      alert("استغل مع كل دمج ذكر الله والاستغفار في قلبك");
       break;
-    }
-    if(grid[r].some(f=>f!==targetFruit)){
-      if(gems>0) gems--;
-      gemsEl.textContent=gems;
     }
   }
 }
@@ -191,43 +165,12 @@ function nextTarget(){
   targetEl.textContent=t;
 }
 
-/* ===== Buy Gems ===== */
-document.getElementById("buyBtn").onclick=()=>{
-  let amount=parseInt(document.getElementById("buyAmount").value)||1;
-  gems += amount;
-  gemsEl.textContent=gems;
-  if(user){
-    firebase.database().ref("games/"+user.uid).push({
-      type:"buy",
-      amount,
-      timestamp:Date.now()
-    });
-  }
-  alert("تم شراء "+amount+" جوهرة. رقم الحساب للدفع: 00799999000887214877");
-};
-
-/* ===== Withdraw ===== */
-document.getElementById("withdrawBtn").onclick=()=>{
-  if(gems>=1000){
-    alert("تم طلب الشحن، انتظر التحقق\nرقم الحساب للدفع: 00799999000887214877");
-    if(user){
-      firebase.database().ref("withdraws").push({
-        user:user.displayName,
-        gems,
-        timestamp:Date.now()
-      });
-    }
-  } else {
-    alert("السحب متاح عند 1000DA فأكثر");
-  }
-};
-
 /* ===== Firebase Save / Load ===== */
 function saveGame(){
   if(!user) return;
   firebase.database().ref("games/"+user.uid).set({
     name:user.displayName,
-    grid,score,gems,targetFruit,
+    grid,score,da,targetFruit,
     lastActive:Date.now()
   });
 }
@@ -239,28 +182,37 @@ function loadGame(){
     const d=snap.val();
     grid=d.grid||[];
     score=d.score||0;
-    gems=d.gems||0;
+    da=d.da||0;
     targetFruit=d.targetFruit||"";
     scoreEl.textContent=score;
-    gemsEl.textContent=gems;
-    targetEl.textContent=targetFruit;
+    daEl.textContent=da;
     renderGrid();
   });
 }
 
-/* ===== Active Users ===== */
+/* ===== Active Users Count ===== */
 function updateActiveUsers(){
   firebase.database().ref("games")
     .orderByChild("lastActive")
-    .startAt(Date.now()-300000)
-    .on("value",snap=>{
-      activeList.innerHTML="";
-      snap.forEach(s=>{
-        activeList.innerHTML+=`<li>${s.val().name} - نقاط: ${s.val().score} - جواهر: ${s.val().gems}</li>`;
-      });
+    .startAt(Date.now()-300000) // آخر 5 دقائق
+    .on("value", snap=>{
+      const activeCount = snap.size; // عدد المستخدمين النشطين
+      activeUsersEl.textContent = `🟢 المستخدمون النشطون: ${activeCount}`;
     });
 }
-</script>
 
+/* ===== Purchase Gems (Manual Approval) ===== */
+document.getElementById("buyBtn").onclick=()=>{
+  let amount=parseInt(document.getElementById("buyAmount").value)||1;
+  if(!user) return alert("سجل الدخول أولاً");
+  // سجل الطلب في Firebase فقط
+  firebase.database().ref("purchaseRequests").push({
+    user:user.displayName,
+    amount,
+    timestamp:Date.now()
+  });
+  alert("تم طلب الشحن، انتظر التحقق");
+};
+</script>
 </body>
 </html>
