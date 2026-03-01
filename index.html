@@ -19,10 +19,7 @@ body{
   justify-content:space-between;
   padding:10px;
   background:#222;
-}
-
-.section{
-  width:33%;
+  font-size:18px;
 }
 
 .english{
@@ -53,10 +50,10 @@ button{
 }
 </style>
 
-<!-- حماية الدومين -->
+<!-- حماية تشغيل الموقع فقط على دومينك -->
 <script>
 const allowedHost = "freudd22-bot.github.io";
-if(location.hostname !== allowedHost){
+if (location.hostname !== allowedHost) {
   document.write("غير مسموح بتشغيل اللعبة خارج الموقع الرسمي");
   throw new Error("Unauthorized Host");
 }
@@ -72,7 +69,7 @@ var firebaseConfig = {
   apiKey: "PUT_YOUR_KEY",
   authDomain: "PUT_YOUR_AUTH",
   databaseURL: "PUT_YOUR_DB_URL",
-  projectId: "PUT_YOUR_PROJECT"
+  projectId: "PUT_YOUR_PROJECT",
 };
 firebase.initializeApp(firebaseConfig);
 </script>
@@ -81,29 +78,26 @@ firebase.initializeApp(firebaseConfig);
 <body>
 
 <div class="topbar">
-
-  <div class="section">
+  <div id="points">
     النقاط
     <span class="english">Points</span>
     <div id="pointsValue">0</div>
   </div>
 
-  <div class="section">
+  <div id="target">
     الهدف
     <span class="english">Target</span>
     <div id="targetValue">10</div>
   </div>
 
-  <div class="section">
+  <div id="gems">
     الجواهر
     <span class="english">Gems (1 = 1 DA)</span>
     <div id="gemsValue">0</div>
   </div>
-
 </div>
 
 <div style="margin-top:10px;">
-
   <button id="googleLogin">
     تسجيل الدخول
     <span class="english">Login</span>
@@ -114,19 +108,17 @@ firebase.initializeApp(firebaseConfig);
     <span class="english">Logout</span>
   </button>
 
-  <div id="userStatus"></div>
+  <div id="userStatus" style="margin-top:5px;"></div>
 
-  <div style="margin-top:5px;">
+  <div id="activeUsers" style="margin-top:5px;">
     المستخدمون النشطون
     <span class="english">Active Users</span>
-    :
-    <span id="activeCount">0</span>
+    : <span id="activeCount">0</span>
   </div>
-
 </div>
 
 <div class="game">
-  <button onclick="addPoint()">ابدأ اللعبة</button>
+  <button onclick="addPoint()">اضغط</button>
 </div>
 
 <div class="note">
@@ -135,24 +127,24 @@ firebase.initializeApp(firebaseConfig);
 </div>
 
 <script>
-
 let user=null;
 let points=0;
 let target=10;
+let gems=0;
 
-/* تسجيل الدخول Popup (كما كان سابقًا) */
+/* تسجيل الدخول */
 document.getElementById("googleLogin").onclick=()=>{
   const provider=new firebase.auth.GoogleAuthProvider();
   provider.setCustomParameters({prompt:"select_account"});
-  firebase.auth().signInWithPopup(provider);
+  firebase.auth().signInWithRedirect(provider);
 };
 
-/* تسجيل الخروج بدون تحديث الصفحة */
+/* تسجيل الخروج بدون إعادة تحميل */
 document.getElementById("logoutBtn").onclick=()=>{
   firebase.auth().signOut();
 };
 
-/* مراقبة حالة الدخول */
+/* حالة المستخدم */
 firebase.auth().onAuthStateChanged(u=>{
   if(u){
     user=u;
@@ -160,7 +152,7 @@ firebase.auth().onAuthStateChanged(u=>{
     document.getElementById("googleLogin").style.display="none";
     document.getElementById("logoutBtn").style.display="inline-block";
 
-    trackActive();
+    trackActiveUser();
     loadGems();
   }else{
     user=null;
@@ -171,7 +163,7 @@ firebase.auth().onAuthStateChanged(u=>{
 });
 
 /* عداد المستخدمين النشطين */
-function trackActive(){
+function trackActiveUser(){
   const ref=firebase.database().ref("activeUsers/"+user.uid);
   ref.set(true);
   ref.onDisconnect().remove();
@@ -185,16 +177,14 @@ function trackActive(){
 function loadGems(){
   firebase.database().ref("users/"+user.uid+"/gems")
   .on("value",snap=>{
-    document.getElementById("gemsValue").innerText=snap.val()||0;
+    gems=snap.val()||0;
+    document.getElementById("gemsValue").innerText=gems;
   });
 }
 
-/* اللعبة */
+/* إضافة نقاط فقط */
 function addPoint(){
-  if(!user){
-    alert("سجل الدخول أولاً");
-    return;
-  }
+  if(!user) return alert("سجل الدخول أولاً");
 
   points++;
   document.getElementById("pointsValue").innerText=points;
@@ -205,7 +195,6 @@ function addPoint(){
     document.getElementById("pointsValue").innerText=points;
   }
 }
-
 </script>
 
 </body>
