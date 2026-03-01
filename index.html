@@ -3,290 +3,199 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fruit Merge Game</title>
+<title>لعبة الجواهر</title>
 
 <style>
 body{
-font-family:Tahoma,Arial;
-background:linear-gradient(135deg,#f5f7fa,#c3cfe2);
-margin:0;
-padding:15px;
-text-align:center
+  margin:0;
+  font-family:Arial;
+  background:#111;
+  color:white;
+  text-align:center;
+}
+
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  padding:10px;
+  background:#222;
+  font-size:18px;
+}
+
+.english{
+  display:block;
+  font-size:11px;
+  opacity:0.7;
 }
 
 button{
-padding:10px 20px;
-border:none;
-border-radius:8px;
-cursor:pointer;
-margin:6px
+  padding:8px 15px;
+  margin:5px;
+  border:none;
+  border-radius:5px;
+  cursor:pointer;
 }
 
-#startBtn{background:#4CAF50;color:white}
-#googleLogin{background:#4285F4;color:white}
-#logoutBtn{background:#f44336;color:white}
-#buyBtn{background:#FF9800;color:white}
-#sendWithdraw{background:#9C27B0;color:white}
+#googleLogin{background:#4285F4;color:white;}
+#logoutBtn{background:#c0392b;color:white;display:none;}
 
-.english{
-display:block;
-font-size:11px;
-color:#444
-}
-
-#topBar{
-display:flex;
-justify-content:space-between;
-align-items:center;
-max-width:420px;
-margin:10px auto;
-font-weight:bold
-}
-
-#game{
-display:grid;
-grid-template-columns:repeat(6,1fr);
-gap:6px;
-max-width:360px;
-margin:15px auto
-}
-
-.cell{
-background:white;
-border-radius:8px;
-height:50px;
-display:flex;
-justify-content:center;
-align-items:center;
-font-size:24px;
-cursor:pointer
+.game{
+  margin-top:20px;
 }
 
 .note{
-font-size:13px;
-margin-top:10px
+  margin-top:15px;
+  font-size:14px;
+  opacity:0.8;
 }
 </style>
+
+<!-- حماية تشغيل الموقع فقط على دومينك -->
+<script>
+const allowedHost = "freudd22-bot.github.io";
+if (location.hostname !== allowedHost) {
+  document.write("غير مسموح بتشغيل اللعبة خارج الموقع الرسمي");
+  throw new Error("Unauthorized Host");
+}
+</script>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+var firebaseConfig = {
+  apiKey: "PUT_YOUR_KEY",
+  authDomain: "PUT_YOUR_AUTH",
+  databaseURL: "PUT_YOUR_DB_URL",
+  projectId: "PUT_YOUR_PROJECT",
+};
+firebase.initializeApp(firebaseConfig);
+</script>
+
 </head>
 <body>
 
-<h3>🎮 لعبة دمج الفواكه
-<span class="english">Fruit Merge Game</span>
-</h3>
+<div class="topbar">
+  <div id="points">
+    النقاط
+    <span class="english">Points</span>
+    <div id="pointsValue">0</div>
+  </div>
 
-<div id="userStatus">
-👤 زائر
-<span class="english">Guest</span>
+  <div id="target">
+    الهدف
+    <span class="english">Target</span>
+    <div id="targetValue">10</div>
+  </div>
+
+  <div id="gems">
+    الجواهر
+    <span class="english">Gems (1 = 1 DA)</span>
+    <div id="gemsValue">0</div>
+  </div>
 </div>
 
-<button id="googleLogin">
-تسجيل الدخول
-<span class="english">Login with Google</span>
-</button>
+<div style="margin-top:10px;">
+  <button id="googleLogin">
+    تسجيل الدخول
+    <span class="english">Login</span>
+  </button>
 
-<button id="logoutBtn" style="display:none">
-تسجيل الخروج
-<span class="english">Logout</span>
-</button>
+  <button id="logoutBtn">
+    تسجيل الخروج
+    <span class="english">Logout</span>
+  </button>
 
-<button id="startBtn">
-ابدأ اللعبة
-<span class="english">Start Game</span>
-</button>
+  <div id="userStatus" style="margin-top:5px;"></div>
 
-<div id="gameContainer" style="display:none">
-
-<div id="topBar">
-
-<div>
-⭐ نقاط: <span id="score">0</span>
-<span class="english">Score</span>
+  <div id="activeUsers" style="margin-top:5px;">
+    المستخدمون النشطون
+    <span class="english">Active Users</span>
+    : <span id="activeCount">0</span>
+  </div>
 </div>
 
-<div>
-🎯 الهدف: <span id="target"></span>
-<span class="english">Target</span>
-</div>
-
-<div>
-💎 <span id="gems">0</span> DA
-<span class="english">Gems (1 Gem = 1 DA)</span>
-</div>
-
-</div>
-
-<div class="note">
-املأ الصف أفقيًا حسب الهدف
-<span class="english">Fill the row horizontally according to the target</span>
-</div>
-
-<div id="game"></div>
-
-<div id="activeUsers">
-🟢 المستخدمون النشطون: 0
-<span class="english">Active Users</span>
-</div>
-
-<div>
-<input type="number" id="buyAmount" placeholder="عدد الجواهر">
-<span class="english">Gem Amount</span><br>
-<button id="buyBtn">
-شراء جوهرة ب 1 DA
-<span class="english">Buy Gem (1 DA)</span>
-</button>
-</div>
-
-<div>
-<input type="text" id="withdrawAccount" placeholder="رقم حسابك للسحب">
-<span class="english">Your Account Number</span><br>
-<button id="sendWithdraw">
-طلب السحب
-<span class="english">Withdraw</span>
-</button>
+<div class="game">
+  <button onclick="addPoint()">اضغط</button>
 </div>
 
 <div class="note">
-استغل كل دمج بالذكر والاستغفار في قلبك
-<span class="english">Remember Allah and seek forgiveness in every merge</span>
+  املأ الصف أفقياً حسب الهدف
+  <span class="english">Fill the row horizontally according to the target</span>
 </div>
-
-</div>
-
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-
-/* حماية الدومين */
-const allowedHost="freudd22-bot.github.io";
-if(window.location.host!==allowedHost){
-alert("غير مصرح بتشغيل اللعبة هنا");
-throw new Error("Blocked");
-}
-
-/* Firebase */
-const firebaseConfig={
-apiKey:"YOUR_API_KEY",
-authDomain:"naturebelkhirapp.firebaseapp.com",
-databaseURL:"https://naturebelkhirapp-default-rtdb.firebaseio.com",
-projectId:"naturebelkhirapp"
-};
-
-firebase.initializeApp(firebaseConfig);
-
 let user=null;
-let grid=[];
-let score=0;
+let points=0;
+let target=10;
 let gems=0;
-let target="";
-const fruits=["🍎","🍌","🍊","🍓","🍐","🍇"];
-const size=6;
 
-/* استرجاع الجلسة */
-firebase.auth().onAuthStateChanged((u)=>{
-if(u){
-user=u;
-document.getElementById("userStatus").innerHTML="👤 "+user.displayName;
-document.getElementById("googleLogin").style.display="none";
-document.getElementById("logoutBtn").style.display="inline-block";
-trackActive();
-}
+/* تسجيل الدخول */
+document.getElementById("googleLogin").onclick=()=>{
+  const provider=new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({prompt:"select_account"});
+  firebase.auth().signInWithRedirect(provider);
+};
+
+/* تسجيل الخروج بدون إعادة تحميل */
+document.getElementById("logoutBtn").onclick=()=>{
+  firebase.auth().signOut();
+};
+
+/* حالة المستخدم */
+firebase.auth().onAuthStateChanged(u=>{
+  if(u){
+    user=u;
+    document.getElementById("userStatus").innerHTML="👤 "+u.displayName;
+    document.getElementById("googleLogin").style.display="none";
+    document.getElementById("logoutBtn").style.display="inline-block";
+
+    trackActiveUser();
+    loadGems();
+  }else{
+    user=null;
+    document.getElementById("userStatus").innerHTML="👤 زائر<span class='english'>Guest</span>";
+    document.getElementById("googleLogin").style.display="inline-block";
+    document.getElementById("logoutBtn").style.display="none";
+  }
 });
 
-/* تسجيل دخول */
-document.getElementById("googleLogin").onclick=async()=>{
-const provider=new firebase.auth.GoogleAuthProvider();
-await firebase.auth().signInWithPopup(provider);
-};
+/* عداد المستخدمين النشطين */
+function trackActiveUser(){
+  const ref=firebase.database().ref("activeUsers/"+user.uid);
+  ref.set(true);
+  ref.onDisconnect().remove();
 
-/* تسجيل خروج */
-document.getElementById("logoutBtn").onclick=async()=>{
-await firebase.auth().signOut();
-location.reload();
-};
-
-/* بدء */
-document.getElementById("startBtn").onclick=()=>{
-document.getElementById("gameContainer").style.display="block";
-document.getElementById("startBtn").style.display="none";
-init();
-render();
-};
-
-function init(){
-grid=[];
-for(let r=0;r<size;r++){
-let row=[];
-for(let c=0;c<size;c++){
-row.push(randomFruit());
-}
-grid.push(row);
-}
-newTarget();
+  firebase.database().ref("activeUsers").on("value",snap=>{
+    document.getElementById("activeCount").innerText=snap.numChildren();
+  });
 }
 
-function newTarget(){
-target=fruits[Math.floor(Math.random()*fruits.length)];
-document.getElementById("target").textContent=target;
+/* تحميل الجواهر من قاعدة البيانات فقط */
+function loadGems(){
+  firebase.database().ref("users/"+user.uid+"/gems")
+  .on("value",snap=>{
+    gems=snap.val()||0;
+    document.getElementById("gemsValue").innerText=gems;
+  });
 }
 
-function randomFruit(){
-return fruits[Math.floor(Math.random()*fruits.length)];
-}
+/* إضافة نقاط فقط */
+function addPoint(){
+  if(!user) return alert("سجل الدخول أولاً");
 
-function render(){
-const game=document.getElementById("game");
-game.innerHTML="";
-for(let r=0;r<size;r++){
-for(let c=0;c<size;c++){
-const cell=document.createElement("div");
-cell.className="cell";
-cell.textContent=grid[r][c];
-cell.onclick=()=>clickCell(r,c);
-game.appendChild(cell);
-}
-}
-}
+  points++;
+  document.getElementById("pointsValue").innerText=points;
 
-let selected=null;
-
-function clickCell(r,c){
-if(!selected){selected=[r,c];return;}
-const [sr,sc]=selected;
-if(grid[sr][sc]===grid[r][c] && !(sr===r&&sc===c)){
-grid[sr][sc]=randomFruit();
-grid[r][c]=randomFruit();
-checkRows();
+  if(points>=target){
+    alert("🎉 وصلت للهدف!");
+    points=0;
+    document.getElementById("pointsValue").innerText=points;
+  }
 }
-selected=null;
-render();
-}
-
-function checkRows(){
-for(let r=0;r<size;r++){
-if(grid[r].every(f=>f===target)){
-score+=100;
-gems=Math.floor(score/1000);
-newTarget();
-}
-}
-document.getElementById("score").textContent=score;
-document.getElementById("gems").textContent=gems;
-}
-
-/* النشطون */
-function trackActive(){
-const ref=firebase.database().ref("active/"+user.uid);
-ref.set(true);
-ref.onDisconnect().remove();
-firebase.database().ref("active").on("value",snap=>{
-document.getElementById("activeUsers").innerHTML=
-"🟢 المستخدمون النشطون: "+snap.numChildren()+
-"<span class='english'>Active Users</span>";
-});
-}
-
 </script>
+
 </body>
 </html>
