@@ -6,42 +6,80 @@
 <title>لعبة دمج الفواكه 6x6 + Firebase | Fruit Merge Game 6x6</title>
 <style>
 body{font-family:Tahoma,Arial,sans-serif;background:linear-gradient(135deg,#f5f7fa,#c3cfe2);margin:0;padding:15px;text-align:center;}
-#startBtn,#googleLogin,#buyBtn{padding:15px 30px;font-size:20px;border:none;border-radius:10px;cursor:pointer;margin:10px}
+#startBtn,#googleLogin,#buyBtn{padding:12px 25px;font-size:18px;border:none;border-radius:10px;cursor:pointer;margin:10px}
 #startBtn{background:#4CAF50;color:#fff}
 #googleLogin{background:#4285F4;color:#fff}
 #buyBtn{background:#FF9800;color:#fff}
-#top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap}
-#targetBox{font-size:24px;font-weight:bold}
-#game{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;max-width:360px;width:90%;margin:15px auto}
+#top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;font-size:14px}
+#targetBox{font-weight:bold;font-size:18px;margin-bottom:5px}
+#game{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;max-width:360px;width:95%;margin:15px auto}
 .cell{background:#fff;border-radius:10px;height:50px;display:flex;justify-content:center;align-items:center;font-size:26px;cursor:pointer}
-#activeUsers{font-weight:bold;margin:15px auto;}
+#activeUsers{font-weight:bold;margin:15px auto;font-size:14px}
+#purchase input{width:120px;padding:8px;font-size:16px;margin-bottom:5px}
+.note{font-size:12px;margin-top:5px;color:#333}
+.english{font-size:11px;color:#555;display:block}
 </style>
 </head>
 <body>
 
-<div id="userStatus">👤 أنت كزائر | Guest</div>
-<button id="googleLogin">تجريبية حاليا | Test Login</button>
-<button id="startBtn">▶️ ابدأ اللعبة | Start Game</button>
+<div id="userStatus">
+  👤 أنت كزائر
+  <span class="english">Guest</span>
+</div>
+<button id="googleLogin">
+  تجريبية حاليا
+  <span class="english">Test Login</span>
+</button>
+<button id="startBtn">
+  ▶️ ابدأ اللعبة
+  <span class="english">Start Game</span>
+</button>
 
 <div id="gameContainer" style="display:none;">
   <div id="top">
-    <div id="scoreBox">⭐ نقاط | Score: <span id="score">0</span></div>
-    <div id="targetBox">🎯 الهدف | Target: <span id="target"></span></div>
-    <div id="daBox">💎 جواهر | Gems: <span id="da">0</span> | DA: <span id="daDA">0</span></div>
+    <div id="scoreBox">
+      ⭐ نقاط: <span id="score">0</span>
+      <span class="english">Score</span>
+    </div>
+    <div id="targetBox">
+      🎯 الهدف: <span id="target"></span>
+      <span class="english">Target</span>
+    </div>
+    <div id="daBox">
+      💎 جواهر: <span id="da">0</span> 
+      <span class="english">Gems</span>
+      | DA: <span id="daDA">0</span>
+    </div>
   </div>
 
   <div id="game"></div>
 
-  <div id="activeUsers">🟢 المستخدمون النشطون | Active Users: 0</div>
-
-  <div id="purchase">
-    <input type="number" id="buyAmount" placeholder="كمية الجواهر | Amount" style="width:120px;padding:8px;font-size:16px">
-    <button id="buyBtn">شراء جوهرة ب 1 DA | Buy Gem 1 DA</button>
-    <div style="font-size:12px;margin-top:5px;">السحب يبدأ من 1000 DA | Withdraw starts from 1000 DA</div>
-    <div style="font-size:12px;margin-top:5px;">رقم الحساب للدفع | Account Number: 00799999000887214877</div>
+  <div id="activeUsers">
+    🟢 المستخدمون النشطون: 0
+    <span class="english">Active Users</span>
   </div>
 
-  <div style="font-size:12px;margin-top:10px;">استغل كل دمج بالذكر والاستغفار في قلبك | Remember Allah & seek forgiveness in every merge</div>
+  <div id="purchase">
+    <input type="number" id="buyAmount" placeholder="كمية الجواهر">
+    <span class="english">Amount of Gems</span>
+    <button id="buyBtn">
+      شراء جوهرة ب 1 DA
+      <span class="english">Buy Gem 1 DA</span>
+    </button>
+    <div class="note">
+      السحب يبدأ من 1000 DA
+      <span class="english">Withdraw starts from 1000 DA</span>
+    </div>
+    <div class="note">
+      رقم الحساب للدفع: 00799999000887214877
+      <span class="english">Account Number for Payment</span>
+    </div>
+  </div>
+
+  <div class="note">
+    استغل كل دمج بالذكر والاستغفار في قلبك
+    <span class="english">Remember Allah & seek forgiveness in every merge</span>
+  </div>
 </div>
 
 <audio id="sound">
@@ -57,7 +95,7 @@ body{font-family:Tahoma,Arial,sans-serif;background:linear-gradient(135deg,#f5f7
 /* ===== حماية الموقع ===== */
 const allowedHost = "freudd22-bot.github.io";
 if(window.location.host !== allowedHost){
-  alert("هذه اللعبة غير مصرح بتشغيلها هنا! | This game is not allowed to run here!");
+  alert("هذه اللعبة غير مصرح بتشغيلها هنا!");
   throw new Error("Host not allowed");
 }
 
@@ -91,7 +129,7 @@ document.getElementById("googleLogin").onclick=async()=>{
   const provider=new firebase.auth.GoogleAuthProvider();
   const res=await firebase.auth().signInWithPopup(provider);
   user=res.user;
-  document.getElementById("userStatus").textContent="👤 "+user.displayName+" | "+user.email;
+  document.getElementById("userStatus").innerHTML="👤 "+user.displayName+"<span class='english'>"+user.email+"</span>";
   document.getElementById("googleLogin").style.display="none";
   loadGame();
   saveActiveUser();
@@ -152,16 +190,15 @@ function checkRows(){
   for(let r=0;r<size;r++){
     if(grid[r].every(f=>f===targetFruit)){
       grid[r]=grid[r].map(()=>randomFruit());
-      score+=100; // نقاط
+      score+=100;
       scoreEl.textContent=score;
       document.getElementById("sound").play();
       nextTarget();
-      // الملاحظة: استغفار وذكر
       console.log("استغل كل دمج بالذكر والاستغفار | Remember Allah & seek forgiveness");
       break;
     }
   }
-  da = Math.floor(score/1000); // كل 1000 نقطة = 1 جوهرة
+  da = Math.floor(score/1000);
   daEl.textContent = da;
   daDAEl.textContent = da;
 }
@@ -197,21 +234,18 @@ function loadGame(){
 function saveActiveUser(){
   if(!user) return;
   const ref = firebase.database().ref("games/"+user.uid);
-  ref.update({
-    name: user.displayName,
-    lastActive: Date.now()
-  });
-  ref.onDisconnect().update({ lastActive: 0 });
+  ref.update({ name:user.displayName, lastActive:Date.now() });
+  ref.onDisconnect().update({ lastActive:0 });
 }
-setInterval(saveActiveUser, 30000); // تحديث النشاط كل 30 ثانية
+setInterval(saveActiveUser,30000);
 
 function updateActiveUsers(){
   firebase.database().ref("games")
     .orderByChild("lastActive")
-    .startAt(Date.now()-300000) // آخر 5 دقائق
-    .on("value", snap=>{
+    .startAt(Date.now()-300000)
+    .on("value",snap=>{
       const activeCount = snap.size;
-      activeUsersEl.textContent = `🟢 المستخدمون النشطون | Active Users: ${activeCount}`;
+      activeUsersEl.innerHTML=`🟢 المستخدمون النشطون: ${activeCount} <span class="english">Active Users</span>`;
     });
 }
 
