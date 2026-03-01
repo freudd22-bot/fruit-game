@@ -94,6 +94,11 @@ margin-top:10px
 <span class="english">Start Game</span>
 </button>
 
+<div class="note">
+املأ الصف أفقياً حسب الهدف
+<span class="english">Fill the row horizontally according to the target</span>
+</div>
+
 <div id="gameContainer" style="display:none">
 
 <div id="topBar">
@@ -115,39 +120,11 @@ margin-top:10px
 
 </div>
 
-<div class="note">
-املأ الصف أفقيًا حسب الهدف
-<span class="english">Fill the row horizontally according to the target</span>
-</div>
-
 <div id="game"></div>
 
 <div id="activeUsers">
 🟢 المستخدمون النشطون: 0
 <span class="english">Active Users</span>
-</div>
-
-<div>
-<input type="number" id="buyAmount" placeholder="عدد الجواهر">
-<span class="english">Gem Amount</span><br>
-<button id="buyBtn">
-شراء جوهرة ب 1 DA
-<span class="english">Buy Gem (1 DA)</span>
-</button>
-</div>
-
-<div>
-<input type="text" id="withdrawAccount" placeholder="رقم حسابك للسحب">
-<span class="english">Your Account Number</span><br>
-<button id="sendWithdraw">
-طلب السحب
-<span class="english">Withdraw</span>
-</button>
-</div>
-
-<div class="note">
-استغل كل دمج بالذكر والاستغفار في قلبك
-<span class="english">Remember Allah and seek forgiveness in every merge</span>
 </div>
 
 </div>
@@ -188,7 +165,6 @@ firebase.auth().onAuthStateChanged((u)=>{
 if(u){
 user=u;
 document.getElementById("userStatus").innerHTML="👤 "+user.displayName;
-document.getElementById("googleLogin").style.display="none";
 document.getElementById("logoutBtn").style.display="inline-block";
 trackActive();
 }
@@ -197,13 +173,12 @@ trackActive();
 /* تسجيل دخول */
 document.getElementById("googleLogin").onclick=async()=>{
 const provider=new firebase.auth.GoogleAuthProvider();
-await firebase.auth().signInWithPopup(provider);
+await firebase.auth().signInWithRedirect(provider);
 };
 
 /* تسجيل خروج */
 document.getElementById("logoutBtn").onclick=async()=>{
 await firebase.auth().signOut();
-location.reload();
 };
 
 /* بدء */
@@ -277,6 +252,7 @@ document.getElementById("gems").textContent=gems;
 
 /* النشطون */
 function trackActive(){
+if(!user) return;
 const ref=firebase.database().ref("active/"+user.uid);
 ref.set(true);
 ref.onDisconnect().remove();
