@@ -4,11 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fruit Merge Game</title>
-
 <style>
 body{font-family:Tahoma,Arial;background:linear-gradient(135deg,#f5f7fa,#c3cfe2);margin:0;padding:15px;text-align:center}
 button{padding:10px 20px;border:none;border-radius:8px;cursor:pointer;margin:6px}
-#startBtn{background:#4CAF50;color:white}#googleLogin{background:#4285F4;color:white}#logoutBtn{background:#f44336;color:white}#buyBtn{background:#FF9800;color:white}#sendWithdraw{background:#9C27B0;color:white}
+#startBtn{background:#4CAF50;color:white}
+#googleLogin{background:#4285F4;color:white}
+#logoutBtn{background:#f44336;color:white}
+#buyBtn{background:#FF9800;color:white}
+#sendWithdraw{background:#9C27B0;color:white}
 .english{display:block;font-size:11px;color:#444}
 #topBar{display:flex;justify-content:space-between;align-items:center;max-width:420px;margin:10px auto;font-weight:bold}
 #game{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;max-width:360px;margin:15px auto}
@@ -18,156 +21,175 @@ button{padding:10px 20px;border:none;border-radius:8px;cursor:pointer;margin:6px
 </head>
 <body>
 
-<h3>🎮 لعبة دمج الفواكه
-<span class="english">Fruit Merge Game</span>
-</h3>
+<h3>🎮 لعبة دمج الفواكه <span class="english">Fruit Merge Game</span></h3>
 
-<div id="userStatus">
-👤 زائر
-<span class="english">Guest</span>
-</div>
+<div id="userStatus"> 👤 زائر <span class="english">Guest</span></div>
+<button id="googleLogin"> تسجيل الدخول <span class="english">Login with Google</span></button>
+<button id="logoutBtn" style="display:none"> تسجيل الخروج <span class="english">Logout</span></button>
 
-<button id="googleLogin">
-تسجيل الدخول
-<span class="english">Login with Google</span>
-</button>
-
-<button id="logoutBtn" style="display:none">
-تسجيل الخروج
-<span class="english">Logout</span>
-</button>
-
-<button id="startBtn">
-ابدأ اللعبة
-<span class="english">Start Game</span>
-</button>
+<button id="startBtn"> ابدأ اللعبة <span class="english">Start Game</span></button>
 
 <div id="gameContainer" style="display:none">
+  <div id="topBar">
+    <div>⭐ نقاط: <span id="score">0</span><span class="english">Score</span></div>
+    <div>🎯 الهدف: <span id="target"></span><span class="english">Target</span></div>
+    <div>💎 <span id="gems">0</span> DA<span class="english">Gems (1 Gem = 1 DA)</span></div>
+  </div>
 
-<div id="topBar">
-<div>⭐ نقاط: <span id="score">0</span><span class="english">Score</span></div>
-<div>🎯 الهدف: <span id="target"></span><span class="english">Target</span></div>
-<div>💎 <span id="gems">0</span> DA<span class="english">Gems (1 Gem = 1 DA)</span></div>
+  <div class="note">املأ الصف أفقيًا حسب الهدف<span class="english">Fill the row horizontally according to the target</span></div>
+  <div id="game"></div>
+  <div id="activeUsers">🟢 المستخدمون النشطون: 0<span class='english'>Active Users</span></div>
+
+  <div>
+    <input type="number" id="buyAmount" placeholder="عدد الجواهر"><span class="english">Gem Amount</span><br>
+    <button id="buyBtn">شراء جوهرة ب 1 DA<span class="english">Buy Gem (1 DA)</span></button>
+  </div>
+
+  <div>
+    <input type="text" id="withdrawAccount" placeholder="رقم حسابك للسحب"><span class="english">Your Account Number</span><br>
+    <button id="sendWithdraw">طلب السحب<span class="english">Withdraw</span></button>
+  </div>
+
+  <div class="note">استغل كل دمج بالذكر والاستغفار في قلبك<span class="english">Remember Allah and seek forgiveness in every merge</span></div>
 </div>
 
-<div class="note">املأ الصف أفقيًا حسب الهدف<span class="english">Fill the row horizontally according to the target</span></div>
-<div id="game"></div>
-
-<div id="activeUsers">🟢 المستخدمون النشطون: 0<span class='english'>Active Users</span></div>
-
-<div>
-<input type="number" id="buyAmount" placeholder="عدد الجواهر"><span class="english">Gem Amount</span><br>
-<button id="buyBtn">شراء جوهرة ب 1 DA<span class="english">Buy Gem (1 DA)</span></button>
-</div>
-
-<div>
-<input type="text" id="withdrawAccount" placeholder="رقم حسابك للسحب"><span class="english">Your Account Number</span><br>
-<button id="sendWithdraw">طلب السحب<span class="english">Withdraw</span></button>
-</div>
-
-<div class="note">استغل كل دمج بالذكر والاستغفار في قلبك<span class="english">Remember Allah and seek forgiveness in every merge</span></div>
-
-</div>
-
+<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
 // -------------------------------
-// Firebase Auth معطل مؤقتًا
+// حماية الدومين
+const allowedHost = "freudd22-bot.github.io"; // عدّل حسب موقعك النهائي
+if(window.location.host !== allowedHost){
+    alert("غير مصرح بتشغيل اللعبة هنا");
+    throw new Error("Blocked");
+}
+
 // -------------------------------
-
-// حماية الدومين معطلة مؤقتًا
-// const allowedHost="freudd22-bot.github.io";
-// if(window.location.host!==allowedHost){ alert("غير مصرح بتشغيل اللعبة هنا"); throw new Error("Blocked"); }
-
-// Firebase config (للتخزين فقط إذا أردت لاحقًا)
-const firebaseConfig={
-  apiKey:"YOUR_API_KEY",
-  authDomain:"naturebelkhirapp.firebaseapp.com",
-  databaseURL:"https://naturebelkhirapp-default-rtdb.firebaseio.com",
-  projectId:"naturebelkhirapp"
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyClrtFM85K_bqAlXTI3D0HY4_V06rKJzzI",
+  authDomain: "fruit-game-new.firebaseapp.com",
+  databaseURL: "https://fruit-game-new-default-rtdb.firebaseio.com",
+  projectId: "fruit-game-new",
+  storageBucket: "fruit-game-new.appspot.com",
+  messagingSenderId: "20059228184",
+  appId: "1:20059228184:web:c37c91fc5463a8f15e5b6d",
+  measurementId: "G-ER6MWTN8W2"
 };
+
 firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+// -------------------------------
+// متابعة حالة تسجيل الدخول
+auth.onAuthStateChanged(user => {
+    if(user){
+        document.getElementById("userStatus").textContent = "👤 " + user.displayName;
+        document.getElementById("googleLogin").style.display = "none";
+        document.getElementById("logoutBtn").style.display = "inline-block";
+        trackActive();
+    } else {
+        document.getElementById("userStatus").textContent = "👤 زائر";
+        document.getElementById("googleLogin").style.display = "inline-block";
+        document.getElementById("logoutBtn").style.display = "none";
+    }
+});
+
+// تسجيل الدخول
+document.getElementById("googleLogin").onclick = async () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    await auth.signInWithPopup(provider);
+};
+
+// تسجيل الخروج
+document.getElementById("logoutBtn").onclick = async () => {
+    await auth.signOut();
+    location.reload();
+};
 
 // -------------------------------
 // اللعبة
-// -------------------------------
 let grid=[],score=0,gems=0,target="";
 const size=6;
 const fruits=["🍎","🍌","🍊","🍓","🍐","🍇"];
 
 document.getElementById("startBtn").onclick=()=>{
-  document.getElementById("gameContainer").style.display="block";
-  document.getElementById("startBtn").style.display="none";
-  init();
-  render();
+    document.getElementById("gameContainer").style.display="block";
+    document.getElementById("startBtn").style.display="none";
+    init();
+    render();
 };
 
 function init(){
-  grid=[];
-  for(let r=0;r<size;r++){
-    let row=[];
-    for(let c=0;c<size;c++) row.push(randomFruit());
-    grid.push(row);
-  }
-  newTarget();
+    grid=[];
+    for(let r=0;r<size;r++){
+        let row=[];
+        for(let c=0;c<size;c++) row.push(randomFruit());
+        grid.push(row);
+    }
+    newTarget();
 }
 
 function newTarget(){target=fruits[Math.floor(Math.random()*fruits.length)];document.getElementById("target").textContent=target;}
 function randomFruit(){return fruits[Math.floor(Math.random()*fruits.length)];}
 
 function render(){
-  const game=document.getElementById("game");
-  game.innerHTML="";
-  for(let r=0;r<size;r++){
-    for(let c=0;c<size;c++){
-      const cell=document.createElement("div");
-      cell.className="cell";
-      cell.textContent=grid[r][c];
-      cell.onclick=()=>clickCell(r,c);
-      game.appendChild(cell);
+    const game=document.getElementById("game");
+    game.innerHTML="";
+    for(let r=0;r<size;r++){
+        for(let c=0;c<size;c++){
+            const cell=document.createElement("div");
+            cell.className="cell";
+            cell.textContent=grid[r][c];
+            cell.onclick=()=>clickCell(r,c);
+            game.appendChild(cell);
+        }
     }
-  }
 }
 
 let selected=null;
 function clickCell(r,c){
-  if(!selected){selected=[r,c];return;}
-  const [sr,sc]=selected;
-  if(grid[sr][sc]===grid[r][c] && !(sr===r&&sc===c)){
-    grid[sr][sc]=randomFruit();
-    grid[r][c]=randomFruit();
-    checkRows();
-  }
-  selected=null;
-  render();
+    if(!selected){selected=[r,c];return;}
+    const [sr,sc]=selected;
+    if(grid[sr][sc]===grid[r][c] && !(sr===r&&sc===c)){
+        grid[sr][sc]=randomFruit();
+        grid[r][c]=randomFruit();
+        checkRows();
+    }
+    selected=null;
+    render();
 }
 
 function checkRows(){
-  for(let r=0;r<size;r++){
-    if(grid[r].every(f=>f===target)){
-      score+=100;
-      gems=Math.floor(score/1000);
-      newTarget();
+    for(let r=0;r<size;r++){
+        if(grid[r].every(f=>f===target)){
+            score+=100;
+            gems=Math.floor(score/1000);
+            newTarget();
+        }
     }
-  }
-  document.getElementById("score").textContent=score;
-  document.getElementById("gems").textContent=gems;
+    document.getElementById("score").textContent=score;
+    document.getElementById("gems").textContent=gems;
 }
 
 // -------------------------------
-// المستخدمون النشطون (اختياري)
+// المستخدمون النشطون
 function trackActive(){
-  const ref=firebase.database().ref("active/test"); // مؤقتًا
-  ref.set(true);
-  ref.onDisconnect().remove();
-  firebase.database().ref("active").on("value",snap=>{
-    document.getElementById("activeUsers").innerHTML="🟢 المستخدمون النشطون: "+snap.numChildren()+"<span class='english'>Active Users</span>";
-  });
+    if(!auth.currentUser) return;
+    const uid = auth.currentUser.uid;
+    const ref = firebase.database().ref("active/" + uid);
+    ref.set(true);
+    ref.onDisconnect().remove();
+    
+    firebase.database().ref("active").on("value", snap => {
+        document.getElementById("activeUsers").innerHTML =
+            "🟢 المستخدمون النشطون: " + snap.numChildren() +
+            "<span class='english'>Active Users</span>";
+    });
 }
-// trackActive(); // يمكنك تفعيلها لاحقًا إذا أردت
 </script>
-
 </body>
 </html>
